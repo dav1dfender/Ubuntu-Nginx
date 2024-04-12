@@ -1,0 +1,37 @@
+# Lets use Ubuntu's latest version image
+FROM ubuntu:latest
+# Expose port
+EXPOSE 8080
+# Lets update and install pre requisites for nginx
+RUN apt-get update && \
+    apt-get install -y curl gnupg2 ca-certificates lsb-release ubuntu-keyring && \
+    rm -rf /var/lib/apt/lists/*
+# Download and import NGINX signing key and verify it 
+RUN curl https://nginx.org/keys/nginx_signing.key | gpg --dearmor \
+        | tee /usr/share/keyrings/nginx-archive-keyring.gpg >/dev/null
+RUN gpg --dry-run --quiet --no-keyring --import --import-options import-show /usr/share/keyrings/nginx-archive-keyring.gpg
+# Lets add NGINX repository
+#RUN echo "deb [signed-by=/usr/share/keyrings/nginx-archive-keyring.gpg] \
+#	http://nginx.org/packages/mainline/ubuntu `lsb_release -cs` nginx" \
+#	| tee /etc/apt/sources.list.d/nginx.list	
+RUN echo "deb [signed-by=/usr/share/keyrings/nginx-archive-keyring.gpg] \
+	http://nginx.org/packages/ubuntu `lsb_release -cs` nginx" \
+    	| tee /etc/apt/sources.list.d/nginx.list
+# Lets pin and prioritize nginx repo
+COPY nginx /etc/apt/preferences.d/99nginx
+# Lets update our repos
+RUN apt-get update
+ 
+# Time to install nginx
+RUN apt-get install -y nginx=1.24.* 
+# Add site to available sites and soft link it to enabled. 
+RUN rm -rf /etc/nginx/conf.d/*
+COPY davit.conf /etc/nginx/conf.d/davit.conf
+#RUN mkdir /etc/nginx/sites-enabled
+# Soft link the new site configuration to sites-enabled
+#RUN ln -s /etc/nginx/sites-available/davit.conf /etc/nginx/sites-enabled/davit.conf
+# Creating custom index.html
+RUN rm -rf /usr/share/nginx/html/index.html
+COPY index.html /usr/share/nginx/html/index.html
+# Start NGINX as container starts
+CMD ["nginx", "-g", "daemon off;"]

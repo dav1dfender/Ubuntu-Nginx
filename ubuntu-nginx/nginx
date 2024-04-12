@@ -1,0 +1,4 @@
+Package:*
+origin nginx.org
+release o=nginx
+Pin-Priority: 900
